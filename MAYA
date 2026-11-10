@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MAYA · System</title>
+  <style>
+    /* ---------- GLOBAL / RESET ---------- */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif; }
+    :root {
+      --bg-deep: #0a0c14;
+      --bg-panel: #11141f;
+      --bg-card: #161b2b;
+      --border-dim: #2a3147;
+      --border-glow: #2f6bff;
+      --blue: #2f6bff;
+      --blue-soft: #5a8aff;
+      --gold: #f5c542;
+      --gold-dim: #b8952e;
+      --text-main: #e8ecf5;
+      --text-dim: #8b95b0;
+      --danger: #ff4d6d;
+      --success: #3dd68c;
+      --radius: 14px;
+      --sidebar-w: 72px;
+      --orb-size: 140px;
+    }
+    body {
+      background: var(--bg-deep);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* subtle system glow */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 20% 10%, rgba(47,107,255,0.08), transparent 60%),
+                  radial-gradient(circle at 80% 90%, rgba(245,197,66,0.05), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ---------- HEADER ---------- */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 18px;
+      background: rgba(10,12,20,0.92);
+      border-bottom: 1px solid var(--border-dim);
+      backdrop-filter: blur(8px);
+      z-index: 20;
+      flex-shrink: 0;
+      min-height: 54px;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .bell-btn {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      color: var(--text-main);
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      cursor: pointer;
+      font-size: 18px;
+      transition: border-color 0.2s;
+    }
+    .bell-btn:hover { border-color: var(--blue); }
+    .bell-badge {
+      position: absolute; top: -3px; right: -3px;
+      background: var(--gold);
+      color: #0a0c14;
+      font-size: 10px; font-weight: 800;
+      min-width: 17px; height: 17px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      padding: 0 4px;
+    }
+    .clock {
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+    .clock strong { color: var(--gold); font-weight: 600; }
+    .header-title {
+      font-size: 15px; font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--blue-soft);
+      text-transform: uppercase;
+    }
+    .header-right { display: flex; align-items: center; gap: 18px; }
+    .xp-bar-wrap {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: var(--text-dim);
+    }
+    .xp-track {
+      width: 110px; height: 6px;
+      background: #1e2436;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .xp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--gold));
+      width: 0%;
+      transition: width 0.4s;
+    }
+    .level-badge {
+      font-size: 12px; font-weight: 700;
+      color: var(--gold);
+      border: 1px solid var(--gold-dim);
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .header-name { font-size: 13px; color: var(--text-dim); }
+
+    /* ---------- LAYOUT ---------- */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---------- SIDEBAR ---------- */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: rgba(10,12,20,0.85);
+      border-right: 1px solid var(--border-dim);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 6px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      z-index: 15;
+    }
+    .nav-btn {
+      width: 52px; height: 48px;
+      border-radius: 12px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      font-size: 18px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      gap: 2px;
+    }
+    .nav-btn .nav-label { font-size: 7px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .nav-btn:hover { background: var(--bg-card); color: var(--text-main); }
+    .nav-btn.active {
+      background: linear-gradient(135deg, rgba(47,107,255,0.18), rgba(245,197,66,0.08));
+      border-color: var(--blue);
+      color: var(--gold);
+      box-shadow: 0 0 12px rgba(47,107,255,0.15);
+    }
+
+    /* ---------- MAIN CONTENT ---------- */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 22px 40px;
+      position: relative;
+    }
+    .page { display: none; animation: fadeIn 0.25s; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .page-title {
+      font-size: 20px; font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+      color: var(--blue-soft);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .page-title .gold-dot { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; }
+
+    /* ---------- CARDS / BOXES ---------- */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .card h3 { font-size: 14px; color: var(--gold); margin-bottom: 10px; letter-spacing: 0.5px; }
+    .card p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+
+    /* ---------- BUTTONS ---------- */
+    .btn {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dim);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .btn:hover { border-color: var(--blue); color: var(--blue-soft); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue), #1e4fd0);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .btn-primary:hover { filter: brightness(1.15); color: #fff; }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold-dim), #8a6d1f);
+      border-color: var(--gold);
+      color: #0a0c14;
+    }
+    .btn-gold:hover { filter: brightness(1.15); color: #0a0c14; }
+    .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 6px; }
+    .btn-danger { border-color: var(--danger); color: var(--danger); }
+    .btn-danger:hover { background: rgba(255,77,109,0.12); }
+
+    /* ---------- FORMS ---------- */
+    .field { margin-bottom: 10px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dim);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); }
+    .field .hint { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .form-row > * { flex: 1; min-width: 120px; }
+
+    /* ---------- LISTS ---------- */
+    .list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dim);
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-bottom: 7px;
+      font-size: 13px;
+      gap: 8px;
+    }
+    .list-item .meta { color: var(--text-dim); font-size: 11px; }
+    .empty-msg { color: var(--text-dim); font-size: 12px; font-style: italic; padding: 8px 0; }
+
+    /* ---------- NOTIFICATION PANEL ---------- */
+    .notif-panel {
+      position: fixed;
+      top: 60px; left: 12px;
+      width: 320px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: var(--bg-panel);
+      border: 1px solid var(--blue);
+      border-radius: var(--radius);
+      padding: 14px;
+      z-index: 100;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      display: none;
+    }
+    .notif-panel.open { display: block; }
+    .notif-panel h4 { font-size: 12px; color: var(--gold); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .notif-item {
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-dim);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item strong { color: var(--text-main); display: block; margin-bottom: 2px; }
+
+    /* ---------- ORB ---------- */
+    .orb-container {
+      position: fixed;
+      right: 22px; bottom: 22px;
+      width: var(--orb-size);
+      height: var(--orb-size);
+      z-index: 50;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      transition: width 0.2s, height 0.2s;
+    }
+    .orb-container:active { cursor: grabbing; }
+    .orb-core {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      position: relative;
+      display: grid; place-items: center;
+      transition: transform 0.1s;
+    }
+    .orb-dots {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(47,107,255,0.25), transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(245,197,66,0.15), transparent 60%);
+      box-shadow: 0 0 40px rgba(47,107,255,0.25), inset 0 0 30px rgba(47,107,255,0.15);
+    }
+    .orb-dots::before {
+      content: '';
+      position: absolute; inset: 12%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(47,107,255,0.35), transparent 70%);
+      animation: pulse 3s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.06); opacity: 1; }
+    }
+    .orb-glow {
+      width: 38%; height: 38%;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--blue-soft), var(--blue) 50%, transparent 75%);
+      box-shadow: 0 0 30px var(--blue), 0 0 60px rgba(47,107,255,0.5);
+      animation: pulse 2s infinite ease-in-out;
+      position: relative;
+    }
+    .orb-container.speaking .orb-glow { animation: vibrate 0.08s infinite; }
+    @keyframes vibrate {
+      0% { transform: translate(0,0) scale(1.02); }
+      25% { transform: translate(-2px,1px) scale(1.02); }
+      50% { transform: translate(2px,-1px) scale(1.04); }
+      75% { transform: translate(-1px,-2px) scale(1.02); }
+      100% { transform: translate(0,0) scale(1.02); }
+    }
+    .orb-caption {
+      position: fixed;
+      bottom: calc(22px + var(--orb-size) + 6px);
+      right: 22px;
+      max-width: 280px;
+      background: rgba(17,20,31,0.95);
+      border: 1px solid var(--blue);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text-main);
+      z-index: 51;
+      display: none;
+      text-align: right;
+      line-height: 1.4;
+    }
+    .orb-caption.show { display: block; }
+
+    /* Big orb on Maya page */
+    .maya-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      gap: 20px;
+      position: relative;
+    }
+    .maya-orb-big {
+      width: 220px; height: 220px;
+      position: relative;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+    .maya-orb-big .orb-glow { width: 34%; height: 34%; }
+    .maya-reply {
+      min-height: 40px;
+      max-width: 500px;
+      text-align: center;
+      font-size: 15px;
+      color: var(--gold);
+      font-style: italic;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+    .maya-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .conversation-box {
+      width: 100%;
+      max-width: 600px;
+      max-height: 220px;
+      overflow-y: auto;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-top: 10px;
+      display: none;
+      font-size: 13px;
+    }
+    .conversation-box.show { display: block; }
+    .conversation-box .msg { padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .conversation-box .msg.user { color: var(--blue-soft); }
+    .conversation-box .msg.maya { color: var(--gold); }
+
+    /* ---------- MISC ---------- */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 700px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .header-right .header-name, .header-right .xp-bar-wrap span { display: none; }
+      .xp-track { width: 60px; }
+      .main-content { padding: 12px 12px 30px; }
+      :root { --sidebar-w: 60px; --orb-size: 100px; }
+      .nav-btn { width: 44px; height: 42px; font-size: 16px; }
+      .notif-panel { width: calc(100vw - 24px); left: 12px; }
+    }
+    .toast {
+      position: fixed;
+      bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg-card);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 10px 22px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 300;
+      opacity: 0;
+      transition: all 0.35s;
+      pointer-events: none;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.5);
+      text-align: center;
+      max-width: 90vw;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .warn-box {
+      background: rgba(255,77,109,0.1);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--danger);
+      margin: 8px 0;
+    }
+    .badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; background: var(--bg-panel); border: 1px solid var(--border-dim); color: var(--text-dim); margin-left: 6px; }
+    .badge.gold { border-color: var(--gold-dim); color: var(--gold); }
+    .badge.blue { border-color: var(--blue); color: var(--blue-soft); }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-dim); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <button class="bell-btn" id="bellBtn" aria-label="Notifications">
+        🔔 <span class="bell-badge" id="bellBadge">0</span>
+      </button>
+      <div class="clock" id="liveClock">--:--:--</div>
+    </div>
+    <div class="header-title">MAYA · System</div>
+    <div class="header-right">
+      <div class="xp-bar-wrap">
+        <span>XP</span>
+        <div class="xp-track"><div class="xp-fill" id="xpFill"></div></div>
+        <span id="xpText">0/100</span>
+      </div>
+      <div class="level-badge" id="levelBadge">Lv.1</div>
+      <div class="header-name">Uday Adhitya</div>
+    </div>
+  </header>
+
+  <!-- NOTIFICATION PANEL -->
+  <div class="notif-panel" id="notifPanel">
+    <h4>⏰ Reminders & Timers</h4>
+    <div id="notifReminders"><div class="empty-msg">Nothing scheduled.</div></div>
+    <h4 style="margin-top:12px;">📜 Notification Log</h4>
+    <div id="notifLog"><div class="empty-msg">No notifications yet.</div></div>
+    <h4 style="margin-top:12px;">💡 Maya's Suggestions</h4>
+    <div id="notifSuggestions"><div class="empty-msg">No suggestions.</div></div>
+  </div>
+
+  <!-- APP BODY -->
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+      <button class="nav-btn active" data-page="status" title="Status">📊<span class="nav-label">Status</span></button>
+      <button class="nav-btn" data-page="maya" title="Maya">🔮<span class="nav-label">Maya</span></button>
+      <button class="nav-btn" data-page="study" title="Study">📚<span class="nav-label">Study</span></button>
+      <button class="nav-btn" data-page="sleep" title="Sleep">🌙<span class="nav-label">Sleep</span></button>
+      <button class="nav-btn" data-page="exercise" title="Exercise">🏋️<span class="nav-label">Exercise</span></button>
+      <button class="nav-btn" data-page="calm" title="Calm">🧘<span class="nav-label">Calm</span></button>
+      <button class="nav-btn" data-page="music" title="Music">🎵<span class="nav-label">Music</span></button>
+      <button class="nav-btn" data-page="maps" title="Maps">🗺️<span class="nav-label">Maps</span></button>
+      <button class="nav-btn" data-page="startup" title="Startup">🚀<span class="nav-label">Startup</span></button>
+      <button class="nav-btn" data-page="amicus" title="Amicus">🤝<span class="nav-label">Amicus</span></button>
+      <button class="nav-btn" data-page="equity" title="Equity">📈<span class="nav-label">Equity</span></button>
+      <button class="nav-btn" data-page="remind" title="Remind">⏱️<span class="nav-label">Remind</span></button>
+      <button class="nav-btn" data-page="memory" title="Memory">🧠<span class="nav-label">Memory</span></button>
+      <button class="nav-btn" data-page="system" title="System">⚙️<span class="nav-label">System</span></button>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="mainContent">
+
+      <!-- ================= STATUS ================= -->
+      <section class="page active" id="page-status">
+        <div class="page-title"><span class="gold-dot"></span> Status · Daily Quests</div>
+        <div class="card" id="briefingCard">
+          <h3>🌅 Briefing</h3>
+          <p id="briefingText">Good day, Uday. The System awaits your commands.</p>
+        </div>
+        <div class="card">
+          <h3>📋 Daily Quests</h3>
+          <p style="font-size:12px;margin-bottom:10px;">Tick once you've saved the details for that quest.</p>
+          <div id="questList"></div>
+        </div>
+        <div class="card">
+          <h3>📝 Quick Note</h3>
+          <div class="field">
+            <label>Daily intention</label>
+            <input id="dailyIntention" placeholder="e.g. Finish 2 lectures of Audit" />
+          </div>
+          <button class="btn btn-primary" onclick="saveIntention()">Save Intention</button>
+          <div id="intentionSaved" style="font-size:12px;color:var(--success);margin-top:8px;"></div>
+        </div>
+      </section>
+
+      <!-- ================= MAYA ================= -->
+      <section class="page" id="page-maya">
+        <div class="maya-page">
+          <div class="maya-orb-big" id="mayaOrbBig">
+            <div class="orb-core">
+              <div class="orb-dots"></div>
+              <div class="orb-glow"></div>
+            </div>
+          </div>
+          <div class="maya-reply" id="mayaReply">Tap the orb to speak. Double-tap for hands-free.</div>
+          <div class="maya-controls">
+            <button class="btn btn-primary" id="pttBtn">🎤 Push to Talk</button>
+            <button class="btn" id="showConvBtn">Show conversation</button>
+            <button class="btn" id="handsFreeBtn">🤖 Hands-free: OFF</button>
+          </div>
+          <div class="conversation-box" id="conversationBox"></div>
+        </div>
+      </section>
+
+      <!-- ================= STUDY ================= -->
+      <section class="page" id="page-study">
+        <div class="page-title"><span class="gold-dot"></span> Study · CA Inter</div>
+        <div class="card">
+          <h3>📚 Subject Tracker</h3>
+          <div class="form-row">
+            <div class="field" style="flex:2;"><label>Subject</label><input id="studySubject" placeholder="e.g. Advanced Accounting" /></div>
+            <div class="field" style="flex:1;"><label>Hours</label><input id="studyHours" type="number" step="0.5" placeholder="2.5" /></div>
+          </div>
+          <div class="field"><label>Weak Area (optional)</label><input id="studyWeak" placeholder="e.g. Consolidation" /></div>
+          <button class="btn btn-primary" onclick="saveStudy()">+ Add Study Log</button>
+          <div id="studyWarn" class="warn-box" style="display:none;"></div>
+        </div>
+        <div class="card">
+          <h3>📊 Logged Hours</h3>
+          <div id="studyList"></div>
+        </div>
+      </section>
+
+      <!-- ================= SLEEP ================= -->
+      <section class="page" id="page-sleep">
+        <div class="page-title"><span class="gold-dot"></span> Sleep</div>
+        <div class="card">
+          <h3>🌙 Sleep Log</h3>
+          <div class="form-row">
+            <div class="field"><label>Date</label><input id="sleepDate" type="date" /></div>
+            <div class="field"><label>Hours</label><input id="sleepHours" type="number" step="0.5" placeholder="7.5" /></div>
+          </div>
+          <div class="field"><label>Quality (1-5)</label><input id="sleepQuality" type="number" min="1" max="5" placeholder="4" /></div>
+          <button class="btn btn-primary" onclick="saveSleep()">+ Log Sleep</button>
+          <div id="sleepWarn" class="warn-box" style="display:none;"></div>
+        </div>
+        <div class="card"><h3>📊 Sleep History</h3><div id="sleepList"></div></div>
+      </section>
+
+      <!-- ================= EXERCISE ================= -->
+      <section class="page" id="page-exercise">
+        <div class="page-title"><span class="gold-dot"></span> Exercise · Basic</div>
+        <div class="card">
+          <h3>🏋️ Log Exercise</h3>
+          <div class="field"><label>Exercise</label>
+            <select id="exSelect">
+              <option>Push-ups</option><option>Squats</option><option>Plank</option>
+              <option>Jumping Jacks</option><option>Stretching</option><option>Walk</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Duration (min)</label><input id="exDuration" type="number" placeholder="15" /></div>
+            <div class="field"><label>Reps/Sets (optional)</label><input id="exReps" placeholder="3x10" /></div>
+          </div>
+          <button class="btn btn-primary" onclick="saveExercise()">+ Log Exercise</button>
+          <div id="exWarn" class="warn-box" style="display:none;"></div>
+        </div>
+        <div class="card"><h3>📊 Exercise Log</h3><div id="exList"></div></div>
+      </section>
+
+      <!-- ================= CALM ================= -->
+      <section class="page" id="page-calm">
+        <div class="page-title"><span class="gold-dot"></span> Calm · Anger Reduction</div>
+        <div class="card">
+          <h3>🧘 Breathing Tool</h3>
+          <p style="font-size:12px;margin-bottom:12px;">Follow the expanding circle. Inhale 4s · Hold 4s · Exhale 4s.</p>
+          <div style="display:flex;justify-content:center;margin:20px 0;">
+            <div id="breathCircle" style="width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,var(--blue-soft),var(--blue));box-shadow:0 0 30px var(--blue);transition:transform 4s ease-in-out;"></div>
+          </div>
+          <button class="btn btn-primary" id="breathBtn" onclick="toggleBreathing()">Start Breathing</button>
+          <div id="breathStatus" style="text-align:center;font-size:13px;color:var(--gold);margin-top:10px;min-height:20px;"></div>
+        </div>
+        <div class="card">
+          <h3>😤 Anger Log</h3>
+          <div class="field"><label>Trigger</label><input id="angerTrigger" placeholder="What triggered it?" /></div>
+          <div class="field"><label>Intensity (1-10)</label><input id="angerIntensity" type="number" min="1" max="10" placeholder="6" /></div>
+          <button class="btn btn-primary" onclick="saveAnger()">+ Log Anger</button>
+          <div id="angerWarn" class="warn-box" style="display:none;"></div>
+          <div id="angerList" style="margin-top:10px;"></div>
+        </div>
+      </section>
+
+      <!-- ================= MUSIC ================= -->
+      <section class="page" id="page-music">
+        <div class="page-title"><span class="gold-dot"></span> Music</div>
+        <div class="card">
+          <h3>🎵 Built-in Sounds</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn" onclick="playTone(432, 2)">432 Hz Calm</button>
+            <button class="btn" onclick="playTone(528, 2)">528 Hz Love</button>
+            <button class="btn" onclick="playTone(639, 2)">639 Hz Connect</button>
+            <button class="btn btn-gold" onclick="stopTone()">⏹ Stop</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>🔗 Spotify Link</h3>
+          <div class="field"><label>Paste Spotify URL</label><input id="spotifyUrl" placeholder="https://open.spotify.com/..." /></div>
+          <button class="btn btn-primary" onclick="saveSpotify()">Save Link</button>
+          <div id="spotifyResult" style="margin-top:10px;font-size:13px;"></div>
+          <div id="spotifyWarn" class="warn-box" style="display:none;"></div>
+        </div>
+        <div class="card">
+          <h3>📜 Saved Links</h3>
+          <div id="spotifyList"></div>
+        </div>
+      </section>
+
+      <!-- ================= MAPS ================= -->
+      <section class="page" id="page-maps">
+        <div class="page-title"><span class="gold-dot"></span> Maps</div>
+        <div class="card">
+          <h3>🗺️ Search Map</h3>
+          <div class="field"><label>Search place</label><input id="mapSearch" placeholder="e.g. Connaught Place, Delhi" /></div>
+          <button class="btn btn-primary" onclick="searchMap()">Search</button>
+          <div id="mapResult" style="margin-top:10px;font-size:13px;"></div>
+        </div>
+        <div class="card">
+          <h3>📒 Address Book</h3>
+          <div class="form-row">
+            <div class="field"><label>Name (optional)</label><input id="addrName" placeholder="Home" /></div>
+            <div class="field" style="flex:2;"><label>Address</label><input id="addrLine" placeholder="Full address" /></div>
+          </div>
+          <button class="btn btn-primary" onclick="saveAddress()">+ Save Address</button>
+          <div id="addrWarn" class="warn-box" style="display:none;"></div>
+          <div id="addrList" style="margin-top:10px;"></div>
+        </div>
+      </section>
+
+      <!-- ================= STARTUP ================= -->
+      <section class="page" id="page-startup">
+        <div class="page-title"><span class="gold-dot"></span> Startup · Board</div>
+        <div class="card">
+          <h3>🚀 Add Card</h3>
+          <div class="field"><label>Title</label><input id="cardTitle" placeholder="Task or idea" /></div>
+          <div class="field"><label>Details (optional)</label><textarea id="cardDetails" rows="2"></textarea></div>
+          <button class="btn btn-primary" onclick="addCard()">+ Add Card</button>
+          <div id="cardWarn" class="warn-box" style="display:none;"></div>
+        </div>
+        <div class="card"><h3>📋 Board</h3><div id="startupBoard"></div></div>
+      </section>
+
+      <!-- ================= AMICUS ================= -->
+      <section class="page" id="page-amicus">
+        <div class="page-title"><span class="gold-dot"></span> Amicus · Business</div>
+        <div class="card">
+          <h3>📊 Metrics</h3>
+          <div class="form-row">
+            <div class="field"><label>Enquiries</label><input id="amicusEnquiries" type="number" placeholder="10" /></div>
+            <div class="field"><label>Bookings</label><input id="amicusBookings" type="number" placeholder="6" /></div>
+            <div class="field"><label>Commission %</label><input id="amicusCommission" type="number" step="0.1" placeholder="15" /></div>
+            <div class="field"><label>Avg Service Fee (₹)</label><input id="amicusFee" type="number" placeholder="2000" /></div>
+            <div class="field"><label>Expenses (₹)</label><input id="amicusExpenses" type="number" placeholder="5000" /></div>
+          </div>
+          <button class="btn btn-primary" onclick="calcAmicus()">Calculate</button>
+          <div id="amicusResult" style="margin-top:12px;font-size:14px;"></div>
+          <div id="amicusWarn" class="warn-box" style="display:none;"></div>
+        </div>
+      </section>
+
+      <!-- ================= EQUITY ================= -->
+      <section class="page" id="page-equity">
+        <div class="page-title"><span class="gold-dot"></span> Equity · Pre ₹20,00,000</div>
+        <div class="card">
+          <h3>📈 Investment</h3>
+          <div class="field"><label>Investment Amount (₹)</label><input id="eqInvestment" type="number" placeholder="500000" /></div>
+          <button class="btn btn-primary" onclick="calcEquity()">Calculate %</button>
+          <div id="equityResult" style="margin-top:12px;font-size:14px;"></div>
+        </div>
+        <div class="card">
+          <h3>👥 Existing Holders</h3>
+          <div class="form-row">
+            <div class="field"><label>Name</label><input id="holderName" placeholder="Uday" /></div>
+            <div class="field"><label>Before %</label><input id="holderPct" type="number" step="0.1" placeholder="100" /></div>
+          </div>
+          <button class="btn" onclick="addHolder()">+ Save Holder</button>
+          <div id="holderWarn" class="warn-box" style="display:none;"></div>
+          <div id="holderList" style="margin-top:10px;"></div>
+        </div>
+      </section>
+
+      <!-- ================= REMIND ================= -->
+      <section class="page" id="page-remind">
+        <div class="page-title"><span class="gold-dot"></span> Remind</div>
+        <div class="card">
+          <h3>⏰ Set Reminder</h3>
+          <div class="field"><label>Message</label><input id="remMsg" placeholder="Drink water" /></div>
+          <div class="form-row">
+            <div class="field"><label>Time</label><input id="remTime" type="time" /></div>
+            <div class="field"><label>Or Timer (seconds)</label><input id="remTimer" type="number" placeholder="60" /></div>
+          </div>
+          <button class="btn btn-primary" onclick="setReminder()">+ Set</button>
+          <div id="remWarn" class="warn-box" style="display:none;"></div>
+        </div>
+        <div class="card"><h3>📋 Active</h3><div id="remList"></div></div>
+      </section>
+
+      <!-- ================= MEMORY ================= -->
+      <section class="page" id="page-memory">
+        <div class="page-title"><span class="gold-dot"></span> Memory</div>
+        <div class="card">
+          <h3>🧠 Add Memory</h3>
+          <div class="field"><label>Type</label>
+            <select id="memType"><option>fact</option><option>assumption</option><option>temporary</option></select>
+          </div>
+          <div class="field"><label>Content</label><textarea id="memContent" rows="2" placeholder="e.g. Uday prefers morning study"></textarea></div>
+          <button class="btn btn-primary" onclick="addMemory()">+ Save</button>
+          <div id="memWarn" class="warn-box" style="display:none;"></div>
+        </div>
+        <div class="card"><h3>📜 Stored</h3><div id="memList"></div></div>
+      </section>
+
+      <!-- ================= SYSTEM ================= -->
+      <section class="page" id="page-system">
+        <div class="page-title"><span class="gold-dot"></span> System</div>
+        <div class="card">
+          <h3>⚙️ Status</h3>
+          <p>🔗 Email: <span style="color:var(--danger);">Not connected</span></p>
+          <p>🖥️ Computer Control: <span style="color:var(--danger);">Not connected</span></p>
+          <p>📷 Camera: <span style="color:var(--danger);">Not connected</span></p>
+          <p>🎤 Voice: <span style="color:var(--success);">Local only</span></p>
+        </div>
+        <div class="card">
+          <h3>📜 Audit Log</h3>
+          <div id="auditLog" style="max-height:150px;overflow-y:auto;font-size:12px;color:var(--text-dim);"></div>
+        </div>
+        <div class="card">
+          <h3>💾 Data</h3>
+          <button class="btn" onclick="exportData()">📤 Export All</button>
+          <button class="btn btn-danger" onclick="deleteAllData()" style="margin-left:8px;">🗑️ Delete All</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- SMALL FLOATING ORB (on non-Maya pages) -->
+  <div class="orb-container" id="smallOrb" style="display:none;">
+    <div class="orb-core">
+      <div class="orb-dots"></div>
+      <div class="orb-glow"></div>
+    </div>
+  </div>
+  <div class="orb-caption" id="orbCaption"></div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ============================================================
+    //  MAYA SYSTEM · standalone localStorage edition
+    // ============================================================
+
+    const LS = {
+      get(k, d) { try { const v = localStorage.getItem('maya_' + k); return v ? JSON.parse(v) : d; } catch(e) { return d; } },
+      set(k, v) { try { localStorage.setItem('maya_' + k, JSON.stringify(v)); return true; } catch(e) { console.warn('LS save fail', e); return false; } },
+      del(k) { localStorage.removeItem('maya_' + k); }
+    };
+
+    // ---------- TOAST ----------
+    function toast(msg, dur = 2200) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), dur);
+    }
+
+    // ---------- CLOCK ----------
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('liveClock').innerHTML = `${h}:${m}:<strong>${s}</strong>`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ---------- XP / LEVEL ----------
+    let xp = LS.get('xp', 0);
+    let level = LS.get('level', 1);
+    function updateXP() {
+      const needed = level * 100;
+      document.getElementById('xpFill').style.width = Math.min(100, (xp / needed) * 100) + '%';
+      document.getElementById('xpText').textContent = `${xp}/${needed}`;
+      document.getElementById('levelBadge').textContent = `Lv.${level}`;
+      if (xp >= needed) { xp -= needed; level++; toast(`⬆️ Level up! Lv.${level}`); LS.set('xp', xp); LS.set('level', level); }
+      LS.set('xp', xp);
+    }
+    function addXP(n) { xp += n; updateXP(); }
+    updateXP();
+
+    // ---------- NOTIFICATIONS ----------
+    let notifLog = LS.get('notifLog', []);
+    let notifUnread = LS.get('notifUnread', 0);
+    let reminders = LS.get('reminders', []);
+
+    function renderNotifBadge() {
+      document.getElementById('bellBadge').textContent = notifUnread;
+      document.getElementById('bellBadge').style.display = notifUnread > 0 ? 'grid' : 'none';
+    }
+    renderNotifBadge();
+
+    function renderNotifPanel() {
+      const rDiv = document.getElementById('notifReminders');
+      if (reminders.length === 0) rDiv.innerHTML = '<div class="empty-msg">Nothing scheduled.</div>';
+      else rDiv.innerHTML = reminders.map(r => `<div class="notif-item"><strong>${r.msg}</strong>${r.when}</div>`).join('');
+
+      const lDiv = document.getElementById('notifLog');
+      if (notifLog.length === 0) lDiv.innerHTML = '<div class="empty-msg">No notifications yet.</div>';
+      else lDiv.innerHTML = notifLog.slice(-10).reverse().map(n => `<div class="notif-item"><strong>${n.msg}</strong>${n.time}</div>`).join('');
+
+      const sDiv = document.getElementById('notifSuggestions');
+      sDiv.innerHTML = `<div class="notif-item"><strong>Try saying:</strong>"Hey Maya, set a timer 5 minutes"</div>
+        <div class="notif-item"><strong>Tip:</strong>Log study hours to gain XP.</div>`;
+    }
+
+    document.getElementById('bellBtn').addEventListener('click', () => {
+      document.getElementById('notifPanel').classList.toggle('open');
+      notifUnread = 0;
+      renderNotifBadge();
+      renderNotifPanel();
+    });
+
+    function pushNotification(msg) {
+      notifLog.push({ msg, time: new Date().toLocaleTimeString() });
+      notifLog = notifLog.slice(-50);
+      LS.set('notifLog', notifLog);
+      notifUnread++;
+      renderNotifBadge();
+      renderNotifPanel();
+      toast(msg, 3000);
+      // beep
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.1, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        o.start(); o.stop(ctx.currentTime + 0.4);
+      } catch(e) {}
+      // speech
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(msg);
+        u.lang = 'en-IN'; u.rate = 0.95;
+        speechSynthesis.speak(u);
+      }
+    }
+
+    // ---------- NAVIGATION ----------
+    let currentPage = 'status';
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPage = btn.dataset.page;
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + currentPage).classList.add('active');
+        // orb visibility
+        const smallOrb = document.getElementById('smallOrb');
+        const orbCaption = document.getElementById('orbCaption');
+        if (currentPage === 'maya') {
+          smallOrb.style.display = 'none';
+          orbCaption.classList.remove('show');
+        } else {
+          smallOrb.style.display = 'block';
+        }
+      });
+    });
+
+    // ============================================================
+    //  PAGE: STATUS
+    // ============================================================
+    const quests = [
+      { id: 'q1', label: 'Log 2+ study hours' },
+      { id: 'q2', label: 'Log sleep' },
+      { id: 'q3', label: 'Exercise 15 min' },
+      { id: 'q4', label: 'Practice calm breathing' },
+      { id: 'q5', label: 'Review Amicus numbers' },
+      { id: 'q6', label: 'Check reminders' },
+    ];
+    let questState = LS.get('questState', {});
+
+    function renderQuests() {
+      const el = document.getElementById('questList');
+      el.innerHTML = quests.map(q => {
+        const done = questState[q.id] ? 'checked' : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;cursor:pointer;">
+          <input type="checkbox" ${done} onchange="toggleQuest('${q.id}',this.checked)" style="accent-color:var(--gold);width:16px;height:16px;" />
+          <span style="${questState[q.id] ? 'text-decoration:line-through;color:var(--text-dim)' : ''}">${q.label}</span>
+        </label>`;
+      }).join('');
+    }
+    window.toggleQuest = (id, checked) => {
+      questState[id] = checked;
+      LS.set('questState', questState);
+      renderQuests();
+      if (checked) { addXP(5); toast('✅ Quest complete +5 XP'); }
+    };
+    renderQuests();
+
+    window.saveIntention = () => {
+      const v = document.getElementById('dailyIntention').value.trim();
+      if (!v) { toast('⚠️ Please enter an intention first.'); return; }
+      LS.set('intention', v);
+      document.getElementById('intentionSaved').textContent = '✅ Saved: ' + v;
+      addXP(3);
+    };
+    const savedIntention = LS.get('intention', '');
+    if (savedIntention) document.getElementById('dailyIntention').value = savedIntention;
+
+    // briefing
+    (function() {
+      const h = new Date().getHours();
+      let greet = 'Good evening';
+      if (h < 12) greet = 'Good morning';
+      else if (h < 17) greet = 'Good afternoon';
+      document.getElementById('briefingText').textContent = `${greet}, Uday. The System awaits your commands.`;
+    })();
+
+    // ============================================================
+    //  PAGE: STUDY
+    // ============================================================
+    let studyLogs = LS.get('studyLogs', []);
+    function renderStudy() {
+      const el = document.getElementById('studyList');
+      if (studyLogs.length === 0) { el.innerHTML = '<div class="empty-msg">No study logs yet.</div>'; return; }
+      el.innerHTML = studyLogs.map((s, i) => `<div class="list-item"><div><strong>${s.subject}</strong><div class="meta">${s.hours}h · weak: ${s.weak || '—'}</div></div><button class="btn btn-sm btn-danger" onclick="delStudy(${i})">✕</button></div>`).join('');
+    }
+    window.saveStudy = () => {
+      const subject = document.getElementById('studySubject').value.trim();
+      const hours = parseFloat(document.getElementById('studyHours').value);
+      const weak = document.getElementById('studyWeak').value.trim();
+      const w = document.getElementById('studyWarn');
+      if (!subject) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Subject.'; return; }
+      if (isNaN(hours) || hours <= 0) { w.style.display = 'block'; w.textContent = '⚠️ Missing: valid Hours.'; return; }
+      w.style.display = 'none';
+      studyLogs.push({ subject, hours, weak });
+      LS.set('studyLogs', studyLogs);
+      document.getElementById('studySubject').value = '';
+      document.getElementById('studyHours').value = '';
+      document.getElementById('studyWeak').value = '';
+      renderStudy(); addXP(4); toast('📚 Study log saved +4 XP');
+    };
+    window.delStudy = (i) => { studyLogs.splice(i, 1); LS.set('studyLogs', studyLogs); renderStudy(); };
+    renderStudy();
+
+    // ============================================================
+    //  PAGE: SLEEP
+    // ============================================================
+    let sleepLogs = LS.get('sleepLogs', []);
+    function renderSleep() {
+      const el = document.getElementById('sleepList');
+      if (sleepLogs.length === 0) { el.innerHTML = '<div class="empty-msg">No sleep logs yet.</div>'; return; }
+      el.innerHTML = sleepLogs.map((s, i) => `<div class="list-item"><div>${s.date} · <strong>${s.hours}h</strong> · quality ${s.quality}/5</div><button class="btn btn-sm btn-danger" onclick="delSleep(${i})">✕</button></div>`).join('');
+    }
+    window.saveSleep = () => {
+      const date = document.getElementById('sleepDate').value;
+      const hours = parseFloat(document.getElementById('sleepHours').value);
+      const quality = parseInt(document.getElementById('sleepQuality').value);
+      const w = document.getElementById('sleepWarn');
+      if (!date) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Date.'; return; }
+      if (isNaN(hours) || hours <= 0) { w.style.display = 'block'; w.textContent = '⚠️ Missing: valid Hours.'; return; }
+      w.style.display = 'none';
+      sleepLogs.push({ date, hours, quality: quality || 3 });
+      LS.set('sleepLogs', sleepLogs);
+      document.getElementById('sleepDate').value = '';
+      document.getElementById('sleepHours').value = '';
+      document.getElementById('sleepQuality').value = '';
+      renderSleep(); addXP(3); toast('🌙 Sleep saved +3 XP');
+    };
+    window.delSleep = (i) => { sleepLogs.splice(i, 1); LS.set('sleepLogs', sleepLogs); renderSleep(); };
+    renderSleep();
+
+    // ============================================================
+    //  PAGE: EXERCISE
+    // ============================================================
+    let exLogs = LS.get('exLogs', []);
+    function renderEx() {
+      const el = document.getElementById('exList');
+      if (exLogs.length === 0) { el.innerHTML = '<div class="empty-msg">No exercise logs yet.</div>'; return; }
+      el.innerHTML = exLogs.map((e, i) => `<div class="list-item"><div><strong>${e.name}</strong><div class="meta">${e.duration} min · ${e.reps || '—'}</div></div><button class="btn btn-sm btn-danger" onclick="delEx(${i})">✕</button></div>`).join('');
+    }
+    window.saveExercise = () => {
+      const name = document.getElementById('exSelect').value;
+      const duration = parseFloat(document.getElementById('exDuration').value);
+      const reps = document.getElementById('exReps').value.trim();
+      const w = document.getElementById('exWarn');
+      if (isNaN(duration) || duration <= 0) { w.style.display = 'block'; w.textContent = '⚠️ Missing: valid Duration.'; return; }
+      w.style.display = 'none';
+      exLogs.push({ name, duration, reps });
+      LS.set('exLogs', exLogs);
+      document.getElementById('exDuration').value = '';
+      document.getElementById('exReps').value = '';
+      renderEx(); addXP(4); toast('🏋️ Exercise saved +4 XP');
+    };
+    window.delEx = (i) => { exLogs.splice(i, 1); LS.set('exLogs', exLogs); renderEx(); };
+    renderEx();
+
+    // ============================================================
+    //  PAGE: CALM
+    // ============================================================
+    let breathing = false;
+    let breathInterval = null;
+    window.toggleBreathing = () => {
+      breathing = !breathing;
+      const circle = document.getElementById('breathCircle');
+      const status = document.getElementById('breathStatus');
+      const btn = document.getElementById('breathBtn');
+      if (breathing) {
+        btn.textContent = '⏹ Stop';
+        circle.style.transform = 'scale(1.5)';
+        status.textContent = 'Inhale...';
+        breathInterval = setInterval(() => {
+          const t = Date.now() % 8000;
+          if (t < 4000) { circle.style.transform = 'scale(1.5)'; status.textContent = 'Inhale...'; }
+          else { circle.style.transform = 'scale(1)'; status.textContent = 'Exhale...'; }
+        }, 200);
+      } else {
+        btn.textContent = 'Start Breathing';
+        clearInterval(breathInterval);
+        circle.style.transform = 'scale(1)';
+        status.textContent = '';
+      }
+    };
+
+    let angerLogs = LS.get('angerLogs', []);
+    function renderAnger() {
+      const el = document.getElementById('angerList');
+      if (angerLogs.length === 0) { el.innerHTML = '<div class="empty-msg">No anger logs yet.</div>'; return; }
+      el.innerHTML = angerLogs.map((a, i) => `<div class="list-item"><div><strong>${a.trigger}</strong> · intensity ${a.intensity}/10</div><button class="btn btn-sm btn-danger" onclick="delAnger(${i})">✕</button></div>`).join('');
+    }
+    window.saveAnger = () => {
+      const trigger = document.getElementById('angerTrigger').value.trim();
+      const intensity = parseInt(document.getElementById('angerIntensity').value);
+      const w = document.getElementById('angerWarn');
+      if (!trigger) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Trigger.'; return; }
+      if (isNaN(intensity) || intensity < 1 || intensity > 10) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Intensity (1-10).'; return; }
+      w.style.display = 'none';
+      angerLogs.push({ trigger, intensity });
+      LS.set('angerLogs', angerLogs);
+      document.getElementById('angerTrigger').value = '';
+      document.getElementById('angerIntensity').value = '';
+      renderAnger(); addXP(2); toast('😤 Anger logged +2 XP');
+    };
+    window.delAnger = (i) => { angerLogs.splice(i, 1); LS.set('angerLogs', angerLogs); renderAnger(); };
+    renderAnger();
+
+    // ============================================================
+    //  PAGE: MUSIC
+    // ============================================================
+    let audioCtx = null;
+    let currentOsc = null;
+    window.playTone = (freq, dur) => {
+      stopTone();
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.frequency.value = freq;
+        o.type = 'sine';
+        o.connect(g); g.connect(audioCtx.destination);
+        g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        o.start(); o.stop(audioCtx.currentTime + dur);
+        currentOsc = o;
+        toast(`🎵 Playing ${freq} Hz`);
+      } catch(e) { toast('⚠️ Audio not available.'); }
+    };
+    window.stopTone = () => { if (currentOsc) { try { currentOsc.stop(); } catch(e) {} currentOsc = null; } };
+
+    let spotifyLinks = LS.get('spotifyLinks', []);
+    function renderSpotify() {
+      const el = document.getElementById('spotifyList');
+      if (spotifyLinks.length === 0) { el.innerHTML = '<div class="empty-msg">No links saved.</div>'; return; }
+      el.innerHTML = spotifyLinks.map((s, i) => `<div class="list-item"><div style="word-break:break-all;">${s.url}</div><div><a href="${s.url}" target="_blank" class="btn btn-sm btn-gold" style="text-decoration:none;margin-right:4px;">↗ Spotify</a><button class="btn btn-sm btn-danger" onclick="delSpotify(${i})">✕</button></div></div>`).join('');
+    }
+    window.saveSpotify = () => {
+      const url = document.getElementById('spotifyUrl').value.trim();
+      const w = document.getElementById('spotifyWarn');
+      if (!url) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Spotify URL.'; return; }
+      if (!url.includes('spotify.com')) { w.style.display = 'block'; w.textContent = '⚠️ Must be a Spotify link.'; return; }
+      w.style.display = 'none';
+      spotifyLinks.push({ url });
+      LS.set('spotifyLinks', spotifyLinks);
+      document.getElementById('spotifyUrl').value = '';
+      renderSpotify();
+      document.getElementById('spotifyResult').innerHTML = `✅ Saved. <a href="${url}" target="_blank" style="color:var(--gold);">Open in Spotify ↗</a>`;
+      addXP(2); toast('🔗 Spotify link saved');
+    };
+    window.delSpotify = (i) => { spotifyLinks.splice(i, 1); LS.set('spotifyLinks', spotifyLinks); renderSpotify(); };
+    renderSpotify();
+
+    // ============================================================
+    //  PAGE: MAPS
+    // ============================================================
+    window.searchMap = () => {
+      const q = document.getElementById('mapSearch').value.trim();
+      const el = document.getElementById('mapResult');
+      if (!q) { el.innerHTML = '<span style="color:var(--danger);">⚠️ Enter a place to search.</span>'; return; }
+      const url = 'https://www.google.com/maps/search/' + encodeURIComponent(q);
+      el.innerHTML = `🗺️ <a href="${url}" target="_blank" style="color:var(--gold);">Open "${q}" in Google Maps ↗</a>`;
+    };
+
+    let addresses = LS.get('addresses', []);
+    function renderAddresses() {
+      const el = document.getElementById('addrList');
+      if (addresses.length === 0) { el.innerHTML = '<div class="empty-msg">No addresses saved.</div>'; return; }
+      el.innerHTML = addresses.map((a, i) => `<div class="list-item"><div><strong>${a.name || 'Saved place'}</strong><div class="meta">${a.line}</div></div><div><a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(a.line)}" target="_blank" class="btn btn-sm btn-gold" style="text-decoration:none;margin-right:4px;">Directions</a><button class="btn btn-sm btn-danger" onclick="delAddress(${i})">✕</button></div></div>`).join('');
+    }
+    window.saveAddress = () => {
+      const name = document.getElementById('addrName').value.trim();
+      const line = document.getElementById('addrLine').value.trim();
+      const w = document.getElementById('addrWarn');
+      if (!line) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Address line.'; return; }
+      w.style.display = 'none';
+      addresses.push({ name, line });
+      LS.set('addresses', addresses);
+      document.getElementById('addrName').value = '';
+      document.getElementById('addrLine').value = '';
+      renderAddresses(); addXP(3); toast('📒 Address saved +3 XP');
+    };
+    window.delAddress = (i) => { addresses.splice(i, 1); LS.set('addresses', addresses); renderAddresses(); };
+    renderAddresses();
+
+    // ============================================================
+    //  PAGE: STARTUP
+    // ============================================================
+    let startupCards = LS.get('startupCards', []);
+    function renderCards() {
+      const el = document.getElementById('startupBoard');
+      if (startupCards.length === 0) { el.innerHTML = '<div class="empty-msg">No cards yet. Add one above.</div>'; return; }
+      el.innerHTML = startupCards.map((c, i) => `<div class="card" style="margin-bottom:8px;"><h3 style="color:var(--blue-soft);">${c.title}</h3><p style="font-size:12px;">${c.details || ''}</p><button class="btn btn-sm btn-danger" onclick="delCard(${i})" style="margin-top:6px;">✕ Remove</button></div>`).join('');
+    }
+    window.addCard = () => {
+      const title = document.getElementById('cardTitle').value.trim();
+      const details = document.getElementById('cardDetails').value.trim();
+      const w = document.getElementById('cardWarn');
+      if (!title) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Card title.'; return; }
+      w.style.display = 'none';
+      startupCards.push({ title, details });
+      LS.set('startupCards', startupCards);
+      document.getElementById('cardTitle').value = '';
+      document.getElementById('cardDetails').value = '';
+      renderCards(); addXP(3); toast('🚀 Card added +3 XP');
+    };
+    window.delCard = (i) => { startupCards.splice(i, 1); LS.set('startupCards', startupCards); renderCards(); };
+    renderCards();
+
+    // ============================================================
+    //  PAGE: AMICUS
+    // ============================================================
+    window.calcAmicus = () => {
+      const enq = parseInt(document.getElementById('amicusEnquiries').value) || 0;
+      const book = parseInt(document.getElementById('amicusBookings').value) || 0;
+      const comm = parseFloat(document.getElementById('amicusCommission').value) || 0;
+      const fee = parseFloat(document.getElementById('amicusFee').value) || 0;
+      const exp = parseFloat(document.getElementById('amicusExpenses').value) || 0;
+      const w = document.getElementById('amicusWarn');
+      if (isNaN(comm) || comm < 0 || comm > 100) { w.style.display = 'block'; w.textContent = '⚠️ Commission % must be 0–100.'; return; }
+      w.style.display = 'none';
+      const revenue = book * (fee * comm / 100);
+      const net = revenue - exp;
+      const breakEven = comm > 0 && fee > 0 ? Math.ceil(exp / (fee * comm / 100)) : '—';
+      document.getElementById('amicusResult').innerHTML = `
+        <div class="list-item"><span>Enquiries</span><strong>${enq}</strong></div>
+        <div class="list-item"><span>Bookings</span><strong>${book}</strong></div>
+        <div class="list-item"><span>Commission Revenue</span><strong style="color:var(--gold);">₹${revenue.toFixed(0)}</strong></div>
+        <div class="list-item"><span>Expenses</span><strong style="color:var(--danger);">₹${exp.toFixed(0)}</strong></div>
+        <div class="list-item"><span>Net Result</span><strong style="color:${net >= 0 ? 'var(--success)' : 'var(--danger)'};">₹${net.toFixed(0)}</strong></div>
+        <div class="list-item"><span>Break-even bookings</span><strong>${breakEven}</strong></div>
+      `;
+      addXP(5); toast('📊 Amicus calculated +5 XP');
+    };
+
+    // ============================================================
+    //  PAGE: EQUITY
+    // ============================================================
+    const PRE = 2000000;
+    window.calcEquity = () => {
+      const inv = parseFloat(document.getElementById('eqInvestment').value) || 0;
+      const post = PRE + inv;
+      const invPct = inv > 0 ? (inv / post) * 100 : 0;
+      document.getElementById('equityResult').innerHTML = `
+        <div class="list-item"><span>Pre-money</span><strong>₹20,00,000</strong></div>
+        <div class="list-item"><span>Investment</span><strong>₹${inv.toLocaleString('en-IN')}</strong></div>
+        <div class="list-item"><span>Post-money</span><strong style="color:var(--gold);">₹${post.toLocaleString('en-IN')}</strong></div>
+        <div class="list-item"><span>Investor %</span><strong style="color:var(--blue-soft);">${invPct.toFixed(2)}%</strong></div>
+      `;
+    };
+
+    let holders = LS.get('holders', []);
+    function renderHolders() {
+      const el = document.getElementById('holderList');
+      if (holders.length === 0) { el.innerHTML = '<div class="empty-msg">No holders saved.</div>'; return; }
+      el.innerHTML = holders.map((h, i) => `<div class="list-item"><div><strong>${h.name}</strong> · before ${h.pct}%</div><button class="btn btn-sm btn-danger" onclick="delHolder(${i})">✕</button></div>`).join('');
+    }
+    window.addHolder = () => {
+      const name = document.getElementById('holderName').value.trim();
+      const pct = parseFloat(document.getElementById('holderPct').value);
+      const w = document.getElementById('holderWarn');
+      if (!name) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Holder name.'; return; }
+      if (isNaN(pct) || pct < 0 || pct > 100) { w.style.display = 'block'; w.textContent = '⚠️ Missing: valid % (0–100).'; return; }
+      w.style.display = 'none';
+      holders.push({ name, pct });
+      LS.set('holders', holders);
+      document.getElementById('holderName').value = '';
+      document.getElementById('holderPct').value = '';
+      renderHolders(); addXP(3); toast('👥 Holder saved +3 XP');
+    };
+    window.delHolder = (i) => { holders.splice(i, 1); LS.set('holders', holders); renderHolders(); };
+    renderHolders();
+
+    // ============================================================
+    //  PAGE: REMIND
+    // ============================================================
+    let remTimers = [];
+    function renderReminders() {
+      const el = document.getElementById('remList');
+      if (reminders.length === 0) { el.innerHTML = '<div class="empty-msg">No active reminders.</div>'; return; }
+      el.innerHTML = reminders.map((r, i) => `<div class="list-item"><div><strong>${r.msg}</strong><div class="meta">${r.when}</div></div><button class="btn btn-sm btn-danger" onclick="delReminder(${i})">✕</button></div>`).join('');
+    }
+    window.setReminder = () => {
+      const msg = document.getElementById('remMsg').value.trim();
+      const time = document.getElementById('remTime').value;
+      const timer = parseFloat(document.getElementById('remTimer').value);
+      const w = document.getElementById('remWarn');
+      if (!msg) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Reminder message.'; return; }
+      if (!time && (isNaN(timer) || timer <= 0)) { w.style.display = 'block'; w.textContent = '⚠️ Set a Time or a Timer.'; return; }
+      w.style.display = 'none';
+      if (timer && timer > 0) {
+        const when = `in ${timer}s`;
+        reminders.push({ msg, when, ts: Date.now() + timer * 1000 });
+        LS.set('reminders', reminders);
+        renderReminders();
+        setTimeout(() => {
+          pushNotification(`⏰ ${msg}`);
+          reminders = reminders.filter(r => r.ts !== Date.now() - timer * 1000);
+          LS.set('reminders', reminders);
+          renderReminders();
+        }, timer * 1000);
+        toast(`⏱ Timer set: ${msg}`);
+      } else if (time) {
+        reminders.push({ msg, when: `at ${time}` });
+        LS.set('reminders', reminders);
+        renderReminders();
+        toast(`⏰ Reminder set at ${time}`);
+      }
+      document.getElementById('remMsg').value = '';
+      document.getElementById('remTime').value = '';
+      document.getElementById('remTimer').value = '';
+      addXP(3);
+    };
+    window.delReminder = (i) => { reminders.splice(i, 1); LS.set('reminders', reminders); renderReminders(); };
+    renderReminders();
+
+    // ============================================================
+    //  PAGE: MEMORY
+    // ============================================================
+    let memories = LS.get('memories', []);
+    function renderMemories() {
+      const el = document.getElementById('memList');
+      if (memories.length === 0) { el.innerHTML = '<div class="empty-msg">No memories stored.</div>'; return; }
+      el.innerHTML = memories.map((m, i) => `<div class="list-item"><div><span class="badge blue">${m.type}</span> <span>${m.content}</span></div><button class="btn btn-sm btn-danger" onclick="delMemory(${i})">✕</button></div>`).join('');
+    }
+    window.addMemory = () => {
+      const type = document.getElementById('memType').value;
+      const content = document.getElementById('memContent').value.trim();
+      const w = document.getElementById('memWarn');
+      if (!content) { w.style.display = 'block'; w.textContent = '⚠️ Missing: Memory content.'; return; }
+      const forbidden = /(password|card\s*number|cvv|otp|pin\b)/i;
+      if (forbidden.test(content)) {
+        w.style.display = 'block'; w.textContent = '🔒 Refused: Contains sensitive data (password/card/OTP/PIN).';
+        return;
+      }
+      w.style.display = 'none';
+      memories.push({ type, content });
+      LS.set('memories', memories);
+      document.getElementById('memContent').value = '';
+      renderMemories(); addXP(2); toast('🧠 Memory saved +2 XP');
+    };
+    window.delMemory = (i) => { memories.splice(i, 1); LS.set('memories', memories); renderMemories(); };
+    renderMemories();
+
+    // ============================================================
+    //  PAGE: SYSTEM
+    // ============================================================
+    function renderAudit() {
+      const el = document.getElementById('auditLog');
+      const log = LS.get('auditLog', []);
+      if (log.length === 0) { el.innerHTML = '<div class="empty-msg">No activity yet.</div>'; return; }
+      el.innerHTML = log.slice(-30).reverse().map(l => `<div>${l.time} · ${l.msg}</div>`).join('');
+    }
+    function audit(msg) {
+      const log = LS.get('auditLog', []);
+      log.push({ time: new Date().toLocaleTimeString(), msg });
+      LS.set('auditLog', log.slice(-100));
+      renderAudit();
+    }
+    renderAudit();
+    audit('System started');
+
+    window.exportData = () => {
+      const data = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k.startsWith('maya_')) data[k] = localStorage.getItem(k);
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'maya-data-export.json';
+      a.click();
+      audit('Data exported');
+      toast('📤 Data exported');
+    };
+
+    window.deleteAllData = () => {
+      if (!confirm('Delete ALL MAYA data from this browser?')) return;
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k.startsWith('maya_')) localStorage.removeItem(k);
+      }
+      audit('All data deleted');
+      toast('🗑️ All data deleted');
+      setTimeout(() => location.reload(), 800);
+    };
+
+    // ============================================================
+    //  ORB — BIG (Maya page)
+    // ============================================================
+    const mayaOrbBig = document.getElementById('mayaOrbBig');
+    const mayaReply = document.getElementById('mayaReply');
+    const conversationBox = document.getElementById('conversationBox');
+    let convVisible = false;
+    let handsFree = false;
+
+    function appendConv(who, text) {
+      const d = document.createElement('div');
+      d.className = 'msg ' + who;
+      d.textContent = (who === 'user' ? '🧑 ' : '🔮 ') + text;
+      conversationBox.appendChild(d);
+      conversationBox.scrollTop = conversationBox.scrollHeight;
+    }
+
+    document.getElementById('showConvBtn').addEventListener('click', () => {
+      convVisible = !convVisible;
+      conversationBox.classList.toggle('show', convVisible);
+      document.getElementById('showConvBtn').textContent = convVisible ? 'Hide conversation' : 'Show conversation';
+    });
+
+    document.getElementById('handsFreeBtn').addEventListener('click', () => {
+      handsFree = !handsFree;
+      document.getElementById('handsFreeBtn').textContent = '🤖 Hands-free: ' + (handsFree ? 'ON' : 'OFF');
+      toast(handsFree ? '👂 Listening for "Hey Maya"...' : '🔇 Hands-free off');
+    });
+
+    // orb tap / double tap
+    let tapTimer = null;
+    let tapCount = 0;
+    mayaOrbBig.addEventListener('click', (e) => {
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => {
+        if (tapCount === 1) {
+          speakReply('Tap the orb again to toggle hands-free, or use Push to Talk.');
+        } else if (tapCount === 2) {
+          handsFree = !handsFree;
+          document.getElementById('handsFreeBtn').textContent = '🤖 Hands-free: ' + (handsFree ? 'ON' : 'OFF');
+          toast(handsFree ? '👂 Hands-free ON' : '🔇 Hands-free OFF');
+        }
+        tapCount = 0;
+      }, 280);
+    });
+
+    // drag big orb
+    (function() {
+      let drag = false, sx, sy, ox, oy;
+      mayaOrbBig.addEventListener('pointerdown', (e) => {
+        drag = true;
+        sx = e.clientX; sy = e.clientY;
+        const r = mayaOrbBig.getBoundingClientRect();
+        ox = r.left; oy = r.top;
+        mayaOrbBig.setPointerCapture(e.pointerId);
+      });
+      mayaOrbBig.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        mayaOrbBig.style.position = 'relative';
+        mayaOrbBig.style.left = dx + 'px';
+        mayaOrbBig.style.top = dy + 'px';
+      });
+      mayaOrbBig.addEventListener('pointerup', () => { drag = false; });
+    })();
+
+    // push-to-talk
+    document.getElementById('pttBtn').addEventListener('click', () => {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        speakReply('Speech recognition is not available in this browser.');
+        return;
+      }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const rec = new SR();
+      rec.lang = 'en-IN';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        appendConv('user', text);
+        handleCommand(text);
+      };
+      rec.onerror = () => speakReply('Sorry, I could not hear you. Please try again.');
+      rec.start();
+      toast('🎤 Listening...');
+    });
+
+    function speakReply(text) {
+      mayaReply.textContent = text;
+      appendConv('maya', text);
+      // caption
+      const cap = document.getElementById('orbCaption');
+      cap.textContent = text;
+      cap.classList.add('show');
+      setTimeout(() => cap.classList.remove('show'), 4000);
+      // vibrate orb
+      mayaOrbBig.querySelector('.orb-core').classList.add('speaking');
+      document.getElementById('smallOrb').classList.add('speaking');
+      setTimeout(() => {
+        mayaOrbBig.querySelector('.orb-core').classList.remove('speaking');
+        document.getElementById('smallOrb').classList.remove('speaking');
+      }, 1500);
+      // speech
+      if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-IN'; u.rate = 0.95;
+        speechSynthesis.speak(u);
+      }
+      addXP(1);
+    }
+
+    // ---------- COMMAND ENGINE ----------
+    function handleCommand(raw) {
+      const cmd = raw.toLowerCase().trim();
+      let reply = '';
+      // hands-free wake
+      if (cmd.includes('hey maya')) {
+        reply = 'Yes boss.';
+        speakReply(reply);
+        if (handsFree) startContinuousRecognition();
+        return;
+      }
+      // open pages
+      const pageMap = { music: 'music', study: 'study', sleep: 'sleep', exercise: 'exercise', calm: 'calm', maps: 'maps', startup: 'startup', amicus: 'amicus', equity: 'equity', remind: 'remind', memory: 'memory', system: 'system', status: 'status' };
+      for (const [key, page] of Object.entries(pageMap)) {
+        if (cmd.includes('open ' + key)) {
+          reply = `Opening ${key}.`;
+          document.querySelector(`.nav-btn[data-page="${page}"]`).click();
+          speakReply(reply); return;
+        }
+      }
+      // remember
+      const remMatch = cmd.match(/remember\s+(?:that\s+)?(.+)/);
+      if (remMatch) {
+        const content = remMatch[1];
+        const forbidden = /(password|card\s*number|cvv|otp|pin\b)/i;
+        if (forbidden.test(content)) { speakReply('I refuse to store passwords, card numbers or OTPs.'); return; }
+        memories.push({ type: 'fact', content });
+        LS.set('memories', memories); renderMemories();
+        speakReply(`Remembered: ${content}`); return;
+      }
+      // timer
+      const timerMatch = cmd.match(/set a timer\s+(?:for\s+)?(\d+)\s*(second|sec|minute|min|hour|hr)s?/);
+      if (timerMatch) {
+        let n = parseInt(timerMatch[1]);
+        const unit = timerMatch[2];
+        let ms = n * 1000;
+        if (unit.startsWith('min')) ms = n * 60000;
+        if (unit.startsWith('hour') || unit.startsWith('hr')) ms = n * 3600000;
+        const msg = `Timer for ${n} ${unit}s`;
+        reminders.push({ msg, when: `in ${n} ${unit}s` });
+        LS.set('reminders', reminders); renderReminders();
+        setTimeout(() => pushNotification(`⏰ ${msg}`), ms);
+        speakReply(`Timer set for ${n} ${unit}s.`); return;
+      }
+      // time
+      if (cmd.includes('what time is it')) {
+        const now = new Date();
+        speakReply(`It is ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}.`);
+        return;
+      }
+      // save contact
+      const contactMatch = cmd.match(/save contact\s+(\w+)\s+([\d\s]+)/);
+      if (contactMatch) {
+        const name = contactMatch[1];
+        const phone = contactMatch[2].replace(/\s/g, '');
+        addresses.push({ name, line: phone, isContact: true });
+        LS.set('addresses', addresses); renderAddresses();
+        speakReply(`Saved contact ${name}: ${phone}`);
+        return;
+      }
+      // save address
+      const addrMatch = cmd.match(/save address\s+(\w+)\s+(.+)/);
+      if (addrMatch) {
+        const name = addrMatch[1];
+        const line = addrMatch[2];
+        addresses.push({ name, line });
+        LS.set('addresses', addresses); renderAddresses();
+        speakReply(`Address saved for ${name}.`);
+        return;
+      }
+      // directions
+      const dirMatch = cmd.match(/directions to\s+(\w+)/);
+      if (dirMatch) {
+        const name = dirMatch[1];
+        const addr = addresses.find(a => a.name.toLowerCase() === name.toLowerCase());
+        if (addr) {
+          window.open('https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(addr.line), '_blank');
+          speakReply(`Opening directions to ${name}.`);
+        } else {
+          speakReply(`I don't have an address saved as ${name}.`);
+        }
+        return;
+      }
+      // whatsapp
+      const waMatch = cmd.match(/whatsapp\s+(\w+)\s+saying\s+(.+)/);
+      if (waMatch) {
+        const name = waMatch[1];
+        const msg = waMatch[2];
+        const contact = addresses.find(a => a.name.toLowerCase() === name.toLowerCase() && a.isContact);
+        if (contact) {
+          window.open(`https://wa.me/${contact.line}?text=${encodeURIComponent(msg)}`, '_blank');
+          speakReply(`Opening WhatsApp chat with ${name}. You press send yourself.`);
+        } else {
+          speakReply(`I don't have a contact saved as ${name}.`);
+        }
+        return;
+      }
+      // order pizza
+      if (cmd.includes('order pizza from swiggy')) {
+        window.open('https://www.swiggy.com/search?query=pizza', '_blank');
+        speakReply('Opening Swiggy search for pizza.');
+        return;
+      }
+      if (cmd.includes('order pizza from zomato')) {
+        window.open('https://www.zomato.com/search?q=pizza', '_blank');
+        speakReply('Opening Zomato search for pizza.');
+        return;
+      }
+      // play on youtube
+      const ytMatch = cmd.match(/play\s+(.+)\s+on youtube/);
+      if (ytMatch) {
+        window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(ytMatch[1]), '_blank');
+        speakReply(`Searching YouTube for ${ytMatch[1]}.`);
+        return;
+      }
+      // default
+      speakReply('I heard: "' + raw + '". Try commands like "open music", "set a timer 5 minutes", or "remember that I like mornings".');
+    }
+
+    // ---------- HANDS-FREE CONTINUOUS ----------
+    let continuousRec = null;
+    function startContinuousRecognition() {
+      if (continuousRec) return;
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+      continuousRec = new SR();
+      continuousRec.lang = 'en-IN';
+      continuousRec.continuous = true;
+      continuousRec.interimResults = false;
+      continuousRec.onresult = (e) => {
+        const text = e.results[e.results.length - 1][0].transcript;
+        appendConv('user', text);
+        handleCommand(text);
+      };
+      continuousRec.onerror = () => { continuousRec = null; };
+      continuousRec.onend = () => {
+        if (handsFree) setTimeout(() => startContinuousRecognition(), 500);
+        else continuousRec = null;
+      };
+      continuousRec.start();
+    }
+
+    // ============================================================
+    //  SMALL FLOATING ORB (non-Maya pages)
+    // ============================================================
+    const smallOrb = document.getElementById('smallOrb');
+    let smallDrag = false, sx, sy, ox, oy;
+    smallOrb.addEventListener('pointerdown', (e) => {
+      smallDrag = true;
+      sx = e.clientX; sy = e.clientY;
+      const r = smallOrb.getBoundingClientRect();
+      ox = r.left; oy = r.top;
+      smallOrb.setPointerCapture(e.pointerId);
+    });
+    smallOrb.addEventListener('pointermove', (e) => {
+      if (!smallDrag) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      smallOrb.style.right = 'auto';
+      smallOrb.style.bottom = 'auto';
+      smallOrb.style.left = (ox + dx) + 'px';
+      smallOrb.style.top = (oy + dy) + 'px';
+    });
+    smallOrb.addEventListener('pointerup', () => { smallDrag = false; });
+    smallOrb.addEventListener('click', () => {
+      const cap = document.getElementById('orbCaption');
+      cap.textContent = 'Tap the Maya page to talk to me.';
+      cap.classList.add('show');
+      setTimeout(() => cap.classList.remove('show'), 2500);
+    });
+
+    // resize small orb on dblclick
+    smallOrb.addEventListener('dblclick', () => {
+      const cur = smallOrb.offsetWidth;
+      const next = cur > 120 ? 80 : 140;
+      smallOrb.style.width = next + 'px';
+      smallOrb.style.height = next + 'px';
+    });
+
+    // ============================================================
+    //  INIT
+    // ============================================================
+    // show small orb on load (status page)
+    document.getElementById('smallOrb').style.display = 'block';
+    renderNotifPanel();
+
+    // periodic reminder check
+    setInterval(() => {
+      const now = Date.now();
+      reminders.forEach((r, i) => {
+        if (r.ts && r.ts <= now) {
+          pushNotification(`⏰ ${r.msg}`);
+          reminders.splice(i, 1);
+          LS.set('reminders', reminders);
+          renderReminders();
+        }
+      });
+    }, 2000);
+
+    // phone-number detection in any text input -> show WhatsApp/Call buttons
+    document.querySelectorAll('input[type="text"], textarea').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const val = inp.value.replace(/[\s\-()]/g, '');
+        let existing = inp.parentElement.querySelector('.phone-actions');
+        if (/^\+?\d{10,13}$/.test(val)) {
+          if (!existing) {
+            const div = document.createElement('div');
+            div.className = 'phone-actions';
+            div.style.marginTop = '4px';
+            div.innerHTML = `<a href="https://wa.me/${val.replace(/^\+/,'')}" target="_blank" class="btn btn-sm btn-gold" style="text-decoration:none;">WhatsApp</a>
+              <a href="tel:${val}" class="btn btn-sm" style="text-decoration:none;margin-left:4px;">📞 Call</a>`;
+            inp.parentElement.appendChild(div);
+          } else {
+            existing.querySelector('a[href^="https://wa.me"]').href = 'https://wa.me/' + val.replace(/^\+/,'');
+            existing.querySelector('a[href^="tel:"]').href = 'tel:' + val;
+          }
+        } else if (existing) {
+          existing.remove();
+        }
+      });
+    });
+
+    // warn about localStorage availability
+    try {
+      localStorage.setItem('maya_test', '1');
+      localStorage.removeItem('maya_test');
+    } catch(e) {
+      alert('⚠️ This view cannot store data. localStorage is blocked. All saves will fail.');
+      toast('⚠️ localStorage blocked — data cannot be saved.', 5000);
+    }
+
+    console.log('MAYA System ready.');
+  </script>
+</body>
+</html>
